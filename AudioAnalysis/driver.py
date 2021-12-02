@@ -97,7 +97,10 @@ def to_string_output(final_output):
 
 
 def filter_impossible(lst, time_buffer):
-    filtered = [lst[0]]
+    n, o = re.split(r'(?<=\D)(?=\d+$)', lst[0][0])
+    e = Analyzer.notes_index[n] + int(o)*12
+    n_n, t_s, d = lst[0]
+    filtered = [(n_n, t_s, d, 0)] if e <= 70 else [(n_n, t_s, d, 1)] 
     i = 0
     while i < len(lst)-1:
         if lst[i+1][1] - lst[i][1]  < time_buffer:
@@ -135,8 +138,9 @@ if __name__ == "__main__":
     # extract and segment audio
     analysis = Analyzer(recording_file_name)
     # in real code set reconstruction = False
-    result, result_dict = analysis.extract_and_segment(lambda a: a/128, 200, 1050, cluster_length=0.10, reconstruction=True)
+    result, result_dict = analysis.extract_and_segment(lambda a: a/128, 391, 1500, cluster_length=0.10, reconstruction=True)
     opt = filter_impossible(to_time_cmds(result), 1/fps*frames_per_motion)
+    print(opt)
 
     if mode == '1' or mode == '4':
         socket.send_cmd(opt)

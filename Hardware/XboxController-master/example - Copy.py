@@ -22,7 +22,8 @@ class PaleBlueSerial:
     def __init__(self, COM=None, baudrate=115200, timeout=0):
         self._COM = COM
         if not self._COM:
-            self._COM = "COM31"
+            ### CHANG ACCORDINGLY ###
+            self._COM = "COM3"
             
         self._ser = serial.Serial(port=self._COM, baudrate=baudrate, timeout=timeout)
 
