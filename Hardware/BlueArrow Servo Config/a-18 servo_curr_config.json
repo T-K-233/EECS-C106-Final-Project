@@ -1,0 +1,1 @@
+{"output_power":390,"deadband":2,"pwm_min_pulse_width":500,"pwm_max_pulse_width":2500,"pwm_neutral_pulse_width":1500,"lower_angle_limit":75,"upper_angle_limit":75,"kp":4,"ki":0,"kd":0,"integration_time":11,"inverted":1,"stall_protection":1,"loss_of_signal_protection":0}
