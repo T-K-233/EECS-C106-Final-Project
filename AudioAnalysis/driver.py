@@ -154,15 +154,25 @@ if __name__ == "__main__":
         print("server connected")
 
         with s:
-            while True:
+            received = False 
+            sending = False
+            while not received:
                 #receive dum data
                 try:
+                    s.sendall(b'note')
                     data = s.recv(1024)
                     if not data:
                         break
                     print(data)
-                    buffer = json.dumps(opt)
-                    s.sendall(buffer.encode())
+                    if data == b'START':
+                        sending = True
+                    if sending:
+                        buffer = json.dumps(opt)
+                        s.sendall(buffer.encode())
+                    data = s.recv(1024)
+                    if data == b'ACK':
+                        sending = False
+                        received = True
                 except KeyboardInterrupt:
                     print("stopped sending data.")
                     break
