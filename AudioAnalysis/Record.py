@@ -2,7 +2,7 @@ import sounddevice as sd
 import queue
 import numpy
 import tempfile
-import soundfile as sf0
+import soundfile as sf
 from scipy.io.wavfile import write
 import sys
 
