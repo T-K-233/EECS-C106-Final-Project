@@ -2,9 +2,12 @@ from scipy.io import wavfile
 from Analyze import Analyzer
 import sys
 import numpy as np
-import socketcomm as socket
+# import socketcomm as socket
+import socket
+import json
 import re
 from Record import record
+
 
 def output(sound, file_name, sample_rate = 44100):
     wavfile.write(file_name, sample_rate, sound)
@@ -120,20 +123,21 @@ def filter_impossible(lst, time_buffer):
 
 if __name__ == "__main__":
     """
-    Mode 1 is IK mode
-    Mode 2 is reconstruction mode
-    Mode 3 is recording mode
-    Mode 4 is full run
+    Mode 1 is IK mode "python driver.py 1 <recording file>"
+    Mode 2 is reconstruction mode "python driver.py 2 <recording file> <reconstructed output file>"
+    Mode 3 is recording mode "python driver.py 3 <reconstructed output file>"
+    Mode 4 is full run "python driver.py 4"
     """
+
     fps = 30
-    frames_per_motion = 15
+    frames_per_motion = 10
 
     mode = sys.argv[1] 
     if mode == '1' or mode == '2':
         recording_file_name = sys.argv[2]
     else:
-        record(float(sys.argv[2]))
-        recording_file_name = 'live_rec/output.wav'
+        recording_file_name = record()
+        
 
     # extract and segment audio
     analysis = Analyzer(recording_file_name)
@@ -143,9 +147,37 @@ if __name__ == "__main__":
     print(opt)
 
     if mode == '1' or mode == '4':
-        socket.send_cmd(opt)
+        # Connecting to server
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(("localhost", 50008))
+        s.settimeout(1)
+        print("server connected")
+
+        with s:
+            received = False 
+            sending = False
+            while not received:
+                #receive dum data
+                try:
+                    s.sendall(b'note')
+                    data = s.recv(1024)
+                    if not data:
+                        break
+                    print(data)
+                    if data == b'START':
+                        sending = True
+                    if sending:
+                        buffer = json.dumps(opt)
+                        s.sendall(buffer.encode())
+                    data = s.recv(1024)
+                    if data == b'ACK':
+                        sending = False
+                        received = True
+                except KeyboardInterrupt:
+                    print("stopped sending data.")
+                    break
     else:
-        output_file_name = sys.argv[3]
+        output_file_name = sys.argv[3] if mode == '2' else sys.argv[2]
         print(opt)
         track, rec = construct_sound(result, sample_rate=analysis.fs)
         output(track, output_file_name, sample_rate=analysis.fs)
