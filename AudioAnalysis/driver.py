@@ -140,12 +140,11 @@ if __name__ == "__main__":
         
 
     # extract and segment audio
-    analysis = Analyzer(recording_file_name)
+    analysis = Analyzer(recording_file_name, debugging=False)
     # in real code set reconstruction = False
-    result, result_dict = analysis.extract_and_segment(lambda a: a/128, 500, 1200, cluster_length=0.10, reconstruction=True)
+    result, result_dict = analysis.extract_and_segment(lambda a: a/128, 500, 1500, cluster_length=0.10, reconstruction=True)
     opt = filter_impossible(to_time_cmds(result), 1/fps*frames_per_motion)
     print(opt)
-
     if mode == '1' or mode == '4':
         # Connecting to server
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -179,7 +178,6 @@ if __name__ == "__main__":
                     break
     else:
         output_file_name = sys.argv[3] if mode == '2' else sys.argv[2]
-        print(opt)
         track, rec = construct_sound(result, sample_rate=analysis.fs)
         output(track, output_file_name, sample_rate=analysis.fs)
         print()
