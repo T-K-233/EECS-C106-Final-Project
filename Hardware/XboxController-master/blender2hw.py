@@ -23,7 +23,7 @@ class PaleBlueSerial:
         self._COM = COM
         if not self._COM:
             ### CHANG ACCORDINGLY ###
-            self._COM = "COM31"
+            self._COM = "COM43"
             
         self._ser = serial.Serial(port=self._COM, baudrate=baudrate, timeout=timeout)
 
@@ -123,12 +123,22 @@ def startSocketComm():
             pose_data["elbow.0.l"] /= .5 * np.pi
             pose_data["elbow.1.l"] /= .5 * np.pi
             pose_data["wrist.l"] /= .5 * np.pi
+            pose_data["shoulder.0.r"] /= .5 * np.pi
+            pose_data["shoulder.1.r"] /= .5 * np.pi
+            pose_data["elbow.0.r"] /= .5 * np.pi
+            pose_data["elbow.1.r"] /= .5 * np.pi
+            pose_data["wrist.r"] /= .5 * np.pi
 
             pose_data["shoulder.0.l"] *= -1
             pose_data["shoulder.1.l"] *= 1
             pose_data["elbow.0.l"] *= -1
             pose_data["elbow.1.l"] *= -1
             pose_data["wrist.l"] *= -1
+            pose_data["shoulder.0.r"] *= -1
+            pose_data["shoulder.1.r"] *= 1
+            pose_data["elbow.0.r"] *= -1
+            pose_data["elbow.1.r"] *= -1
+            pose_data["wrist.r"] *= -1
 
             # offset correction
             pose_data["shoulder.0.l"] += .0
@@ -136,12 +146,22 @@ def startSocketComm():
             pose_data["elbow.0.l"] += -.05
             pose_data["elbow.1.l"] += -.08
             pose_data["wrist.l"] += .01
+            pose_data["shoulder.0.r"] += .0
+            pose_data["shoulder.1.r"] += -.03
+            pose_data["elbow.0.r"] += -.05
+            pose_data["elbow.1.r"] += -.08
+            pose_data["wrist.r"] += .01
 
             pose_data["shoulder.0.l"] *= .95
             pose_data["shoulder.1.l"] *= .90
             pose_data["elbow.0.l"] *= .77
             pose_data["elbow.1.l"] *= .8
             pose_data["wrist.l"] *= .74
+            pose_data["shoulder.0.r"] *= .95
+            pose_data["shoulder.1.r"] *= .90
+            pose_data["elbow.0.r"] *= .77
+            pose_data["elbow.1.r"] *= .8
+            pose_data["wrist.r"] *= .74
 
             
             validateData("shoulder.0.l", 1)
@@ -149,14 +169,24 @@ def startSocketComm():
             validateData("elbow.0.l", 1)
             validateData("elbow.1.l", 1)
             validateData("wrist.l", 1)
-                
+            validateData("shoulder.0.r", 1)
+            validateData("shoulder.1.r", 0.5)
+            validateData("elbow.0.r", 1)
+            validateData("elbow.1.r", 1)
+            validateData("wrist.r", 1)
             
-            buffer = struct.pack("fffff",
+            
+            buffer = struct.pack("ffffffffff",
                                  pose_data["shoulder.0.l"],
                                  pose_data["shoulder.1.l"],
                                  pose_data["elbow.0.l"],
                                  pose_data["elbow.1.l"],
-                                 pose_data["wrist.l"])
+                                 pose_data["wrist.l"],
+                                 pose_data["shoulder.0.r"],
+                                 pose_data["shoulder.1.r"],
+                                 pose_data["elbow.0.r"],
+                                 pose_data["elbow.1.r"],
+                                 pose_data["wrist.r"])
 
             ###### START write to servos ######
             recv_buf = serial_server.receive()
@@ -165,11 +195,15 @@ def startSocketComm():
                 print("[HWSS] null packet from client")
                 serial_server.transmit(b"\xCA")
                 continue
-            
-            curr_angles = struct.unpack("fffff", recv_buf)
+
+            try:
+                curr_angles = struct.unpack("fffff", recv_buf)
+            except:
+                print(recv_buf)
 
             serial_server.transmit(buffer)
 
+            
             ###### END write to servos ######
 
             print(pose_data)
