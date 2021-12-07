@@ -11,7 +11,7 @@
 #include <Adafruit_TinyUSB.h> // for Serial
 #include <Servo.h>
 
-#include "PaleBlue.h"
+//#include "PaleBlue.h"
 
 
 
@@ -46,6 +46,85 @@ void BLE_startAdvertise(void) {
   Bluefruit.Advertising.start(0);                // 0 = Don't stop advertising after n seconds  
 }
 
+
+
+
+
+
+
+
+#include "Arduino.h"
+
+
+#define NLSM_END       0x0AU
+#define NLSM_ESC       0x0BU
+#define NLSM_ESC_END   0x1AU
+#define NLSM_ESC_ESC   0x1BU
+
+
+class PaleBlueBLESerialClass {
+  public:
+    void init(long baudrate) {
+    }
+    uint16_t receive(uint8_t *buffer, uint16_t size) {
+      uint8_t c;
+      uint16_t index = 0;
+
+      while (!bleuart.available()) {}
+      c = bleuart.read();
+      while (c != NLSM_END) {
+        if (c == NLSM_ESC) {
+          while (!bleuart.available()) {}
+          c = bleuart.read();
+          if (c == NLSM_ESC_END) {
+            buffer[index] = NLSM_END;
+          }
+          else if (c == NLSM_ESC_ESC) {
+            buffer[index] = NLSM_ESC;
+          }
+          else {
+            buffer[index] = c;
+          }
+        }
+        else {
+          buffer[index] = c;
+        }
+        index += 1;
+        while (!bleuart.available()) {}
+        c = bleuart.read();
+      }
+      return index;
+    }
+    
+    void transmit(uint8_t *buffer, uint16_t size) {
+      if (size == 0) return ;
+      uint8_t c;
+      uint16_t index = 0;
+      while (index < size) {
+        c = buffer[index];
+        if (c == NLSM_END) {
+          c = NLSM_ESC;
+          bleuart.write(c);
+          c = NLSM_ESC_END;
+          bleuart.write(c);
+        }
+        else if (c == NLSM_ESC) {
+          c = NLSM_ESC;
+          bleuart.write(c);
+          c = NLSM_ESC_ESC;
+          bleuart.write(c);
+        }
+        else {
+          bleuart.write(c);
+        }
+        index += 1;
+      }
+      c = NLSM_END;
+      bleuart.write(c);
+    }
+};
+
+PaleBlueBLESerialClass PaleBlueSerial;
 
 
 
@@ -176,8 +255,8 @@ class BlueArrow_A7 {
 
 
 uint8_t buffer[128];
-float target_angles[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-float curr_angles[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+float target_angles[] = {0, 0, 0, 0, 0};
+float curr_angles[] = {0, 0, 0, 0, 0};
 
 // twelve servo objects can be created on most boards
 
@@ -193,6 +272,37 @@ float curr_angles[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int pos = 0;    // variable to store the servo position
 
 void setup() {
+  PaleBlueSerial.init(115200);
+
+//  while (!Serial) {}
+
+
+  Bluefruit.begin();
+  Bluefruit.setTxPower(4);    // Check bluefruit.h for supported values
+
+  Bluefruit.setName("A.L.I.C.E."); // useful testing with multiple central connections
+
+  // To be consistent OTA DFU should be added first if it exists
+  bledfu.begin();
+
+  // Configure and Start Device Information Service
+  bledis.setManufacturer("Adafruit Industries");
+  bledis.setModel("Bluefruit Feather52");
+  bledis.begin();
+
+  // Configure and Start BLE Uart Service
+  bleuart.begin();
+
+  // Start BLE Battery Service
+  blebas.begin();
+  blebas.write(100);
+
+  // Set up and start advertising
+  BLE_startAdvertise();
+
+
+
+
 
 
 
@@ -233,24 +343,18 @@ void loop() {
 //  curr_angles[3] = servo_3.get();
 //  curr_angles[4] = servo_4.get();
   
-  PaleBlueSerial.transmit((uint8_t *)curr_angles, 5 * sizeof(float));
+//  PaleBlueSerial.transmit((uint8_t *)curr_angles, 5 * sizeof(float));
   
   uint16_t recv_size = PaleBlueSerial.receive(buffer, 128);
   
-  if (recv_size != 10 * sizeof(float)) {
+  if (recv_size != 5 * sizeof(float)) {
     return;
   }
-  
   target_angles[0] = *((float *)buffer + 0);
   target_angles[1] = *((float *)buffer + 1);
   target_angles[2] = *((float *)buffer + 2);
   target_angles[3] = *((float *)buffer + 3);
   target_angles[4] = *((float *)buffer + 4);
-  target_angles[5] = *((float *)buffer + 5);
-  target_angles[6] = *((float *)buffer + 6);
-  target_angles[7] = *((float *)buffer + 7);
-  target_angles[8] = *((float *)buffer + 8);
-  target_angles[9] = *((float *)buffer + 9);
   
 //  servo_0.set(target_angles[0]);
 //  servo_1.set(target_angles[1]);
@@ -259,16 +363,6 @@ void loop() {
 //  servo_4.set(target_angles[4]);
 
   pwm.writeMicroseconds(0, 1500 + 1000 * target_angles[0]);
-  pwm.writeMicroseconds(1, 1500 + 1000 * target_angles[1]);
-  pwm.writeMicroseconds(2, 1500 + 1000 * target_angles[2]);
-  pwm.writeMicroseconds(3, 1500 + 1000 * target_angles[3]);
-  pwm.writeMicroseconds(4, 1500 + 1000 * target_angles[4]);
-  
-  pwm.writeMicroseconds(8, 1500 + 1000 * target_angles[5]);
-  pwm.writeMicroseconds(9, 1500 + 1000 * target_angles[6]);
-  pwm.writeMicroseconds(10, 1500 + 1000 * target_angles[7]);
-  pwm.writeMicroseconds(11, 1500 + 1000 * target_angles[8]);
-  pwm.writeMicroseconds(12, 1500 + 1000 * target_angles[9]);
 
   delay(10);
 }
