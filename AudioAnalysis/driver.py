@@ -9,6 +9,12 @@ import re
 from Record import record
 
 
+def round_note(note_name):
+    note_sharps = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+    if len(note_name) > 2:
+        return note_sharps[(note_sharps.index(note_name[0]) + 1) % 7] + note_name[-1]
+    return note_name
+
 def output(sound, file_name, sample_rate = 44100):
     wavfile.write(file_name, sample_rate, sound)
 
@@ -103,7 +109,7 @@ def filter_impossible(lst, time_buffer):
     n, o = re.split(r'(?<=\D)(?=\d+$)', lst[0][0])
     e = Analyzer.notes_index[n] + int(o)*12
     n_n, t_s, d = lst[0]
-    filtered = [(n_n, t_s, d, 0)] if e <= 70 else [(n_n, t_s, d, 1)] 
+    filtered = [(round_note(n_n), t_s, d, 0)] if e <= 70 else [(n_n, t_s, d, 1)] 
     i = 0
     while i < len(lst)-1:
         if lst[i+1][1] - lst[i][1]  < time_buffer:
@@ -112,10 +118,10 @@ def filter_impossible(lst, time_buffer):
             note, octave = re.split(r'(?<=\D)(?=\d+$)', lst[i+1][0])
             encoding = Analyzer.notes_index[note] + int(octave)*12
             note_name, time_stamp, duration = lst[i+1]
-            if encoding <= 70:
-                filtered += [(note_name, time_stamp, duration, 0)]
+            if encoding < 70:
+                filtered += [(round_note(note_name), time_stamp, duration, 0)]
             else:
-                filtered += [(note_name, time_stamp, duration, 1)]
+                filtered += [(round_note(note_name), time_stamp, duration, 1)]
         i += 1
     return filtered
 
@@ -142,13 +148,17 @@ if __name__ == "__main__":
     # extract and segment audio
     analysis = Analyzer(recording_file_name, debugging=True)
     # in real code set reconstruction = False
-    result, result_dict = analysis.extract_and_segment(lambda a: a/128, 500, 1200, cluster_length=0.10, reconstruction=True)
+    result, result_dict = analysis.extract_and_segment(lambda a: a/128, 500, 2100, cluster_length=0.10, reconstruction=True)
     opt = filter_impossible(to_time_cmds(result), 1/fps*frames_per_motion)
-    print(opt)
+
+    for note in opt:
+        print(note[0])
+
+    # print(opt)
     if mode == '1' or mode == '4':
         # Connecting to server
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect(("localhost", 50007))
+        s.connect(("localhost", 50008))
         s.settimeout(10)
         print("server connected")
 
@@ -159,24 +169,29 @@ if __name__ == "__main__":
                 #receive dum data
                 try:
                     s.sendall(b'note')
+                    print("Sending initiation")
                     data = s.recv(1024)
                     if not data:
                         print("server no data")
                         break
-                    print(data)
+                    
+                    # print(data)
                     if data == b'START':
+                        print("Start Sending")
                         sending = True
                     if sending:
+                        print("Sending")
+                        print(opt)
                         buffer = json.dumps(opt)
                         s.sendall(buffer.encode())
                     data = s.recv(1024)
                     if data == b'ACK':
+                        print("Stopped sending")
                         sending = False
                         received = True
                 except KeyboardInterrupt:
                     print("stopped sending data.")
                     break
-
     output_file_name =  recording_file_name[: -4] + 'out' + recording_file_name[-4:]
     track, rec = construct_sound(result, sample_rate=analysis.fs)
     output(track, output_file_name, sample_rate=analysis.fs)

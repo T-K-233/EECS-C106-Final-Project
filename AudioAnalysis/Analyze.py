@@ -96,10 +96,10 @@ class Analyzer:
         sectioned_Sxx = self.Sxx[freq_bound_low//10 : freq_bound_high//10, :]
         all_energies = np.sort(sectioned_Sxx, axis=None)
         length = sectioned_Sxx.shape[0]*sectioned_Sxx.shape[1]
-        quiet_threshold = all_energies[int(0.965*length)]
+        quiet_threshold = all_energies[int(0.987*length)]
         # quiet_threshold = threshold_func(max_energy)
         # quiet_threshold = max_energy**0.4
-        cell_length = (self.t[1]-self.t[0])+ 0.01
+        cell_length = (self.t[1] -self.t[0]) + 0.001
         self.notes_in_song = []
         for n in range(len(Analyzer.notes_freq)):
             i = np.argmin((self.f-Analyzer.notes_freq[n])**2)
@@ -112,9 +112,10 @@ class Analyzer:
                         self.notes_in_song += [((Analyzer.notes_chart[n%12], n//12 + 1), note_duration)]
         self.result = [(note, cluster(duration, cluster_length, cell_length, reconstruction)) for note, duration in self.notes_in_song]
         self.result = list(filter(lambda a: len(a[1]) != 0, self.result))
+        self.result = list(filter(lambda a: '#' not in a[0][0], self.result))
         self.result_dict = {note : cluster(duration, cluster_length, cell_length, reconstruction) for note, duration in self.notes_in_song}
         if self.debugging:
-            for note_name, durations in self.notes_in_song:
+            for note_name, durations in list(filter(lambda a: '#' not in a[0][0], self.notes_in_song)):
                 plt.scatter(durations, np.full(len(durations), note_name[2]), label=note_name[0] + str(note_name[1]) + str(note_name[2]))
             plt.legend(bbox_to_anchor = (1.05, 0.6))
             plt.show()
@@ -122,7 +123,7 @@ class Analyzer:
             plt.pcolormesh(self.t, self.f[freq_bound_low//10 : freq_bound_high//10], self.Sxx[freq_bound_low//10 : freq_bound_high//10, :], cmap='jet')
             plt.colorbar()
             plt.show()
-        print(self.result)
-        print(self.f[0], self.f[1])
+        # print(self.result)
+        # print(self.f[0], self.f[1])
         return self.result, self.result_dict
 

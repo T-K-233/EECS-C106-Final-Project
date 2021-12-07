@@ -22,8 +22,8 @@ class PaleBlueSerial:
     def __init__(self, COM=None, baudrate=115200, timeout=0):
         self._COM = COM
         if not self._COM:
-            ### CHANG ACCORDINGLY ###
-            self._COM = "COM43"
+            ### CHANGE ACCORDINGLY ###
+            self._COM = "COM4"
             
         self._ser = serial.Serial(port=self._COM, baudrate=baudrate, timeout=timeout)
 
@@ -205,7 +205,6 @@ def startSocketComm():
 
             
             ###### END write to servos ######
-
             print(pose_data)
 
 
