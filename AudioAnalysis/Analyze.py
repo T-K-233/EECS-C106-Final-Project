@@ -93,12 +93,13 @@ class Analyzer:
     """
     def extract_and_segment(self, threshold_func, freq_bound_low, freq_bound_high, cluster_length=0.1, reconstruction=False):
         # Finding Threshold
-        all_energies = np.sort(self.Sxx, axis=None)
-        length = self.Sxx.shape[0]*self.Sxx.shape[1]
-        quiet_threshold = all_energies[int(0.995*length)]
+        sectioned_Sxx = self.Sxx[freq_bound_low//10 : freq_bound_high//10, :]
+        all_energies = np.sort(sectioned_Sxx, axis=None)
+        length = sectioned_Sxx.shape[0]*sectioned_Sxx.shape[1]
+        quiet_threshold = all_energies[int(0.965*length)]
         # quiet_threshold = threshold_func(max_energy)
         # quiet_threshold = max_energy**0.4
-        cell_length = (self.t[1]-self.t[0])+0.01
+        cell_length = (self.t[1]-self.t[0])+ 0.01
         self.notes_in_song = []
         for n in range(len(Analyzer.notes_freq)):
             i = np.argmin((self.f-Analyzer.notes_freq[n])**2)
@@ -116,6 +117,10 @@ class Analyzer:
             for note_name, durations in self.notes_in_song:
                 plt.scatter(durations, np.full(len(durations), note_name[2]), label=note_name[0] + str(note_name[1]) + str(note_name[2]))
             plt.legend(bbox_to_anchor = (1.05, 0.6))
+            plt.show()
+
+            plt.pcolormesh(self.t, self.f[freq_bound_low//10 : freq_bound_high//10], self.Sxx[freq_bound_low//10 : freq_bound_high//10, :], cmap='jet')
+            plt.colorbar()
             plt.show()
         print(self.result)
         print(self.f[0], self.f[1])

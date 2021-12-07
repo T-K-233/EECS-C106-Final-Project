@@ -124,8 +124,8 @@ def filter_impossible(lst, time_buffer):
 if __name__ == "__main__":
     """
     Mode 1 is IK mode "python driver.py 1 <recording file>"
-    Mode 2 is reconstruction mode "python driver.py 2 <recording file> <reconstructed output file>"
-    Mode 3 is recording mode "python driver.py 3 <reconstructed output file>"
+    Mode 2 is reconstruction mode "python driver.py 2 <recording file> "
+    Mode 3 is recording mode "python driver.py 3"
     Mode 4 is full run "python driver.py 4"
     """
 
@@ -140,9 +140,9 @@ if __name__ == "__main__":
         
 
     # extract and segment audio
-    analysis = Analyzer(recording_file_name, debugging=False)
+    analysis = Analyzer(recording_file_name, debugging=True)
     # in real code set reconstruction = False
-    result, result_dict = analysis.extract_and_segment(lambda a: a/128, 500, 1500, cluster_length=0.10, reconstruction=True)
+    result, result_dict = analysis.extract_and_segment(lambda a: a/128, 500, 1200, cluster_length=0.10, reconstruction=True)
     opt = filter_impossible(to_time_cmds(result), 1/fps*frames_per_motion)
     print(opt)
     if mode == '1' or mode == '4':
@@ -176,8 +176,8 @@ if __name__ == "__main__":
                 except KeyboardInterrupt:
                     print("stopped sending data.")
                     break
-    else:
-        output_file_name = sys.argv[3] if mode == '2' else sys.argv[2]
-        track, rec = construct_sound(result, sample_rate=analysis.fs)
-        output(track, output_file_name, sample_rate=analysis.fs)
-        print()
+
+    output_file_name =  recording_file_name[: -4] + 'out' + recording_file_name[-4:]
+    track, rec = construct_sound(result, sample_rate=analysis.fs)
+    output(track, output_file_name, sample_rate=analysis.fs)
+    print()
