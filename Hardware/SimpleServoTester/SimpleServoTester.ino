@@ -1,14 +1,8 @@
-/* Sweep
- by BARRAGAN <http://barraganstudio.com>
- This example code is in the public domain.
-
- modified 8 Nov 2013
- by Scott Fitzgerald
- http://www.arduino.cc/en/Tutorial/Sweep
-*/
+// running on Arduino UNO
 
 //#include <Arduino.h>
 //#include <Adafruit_TinyUSB.h> // for Serial
+
 #include <Servo.h>
 
 Servo myservo;  // create servo object to control a servo
